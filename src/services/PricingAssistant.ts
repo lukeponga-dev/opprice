@@ -1,81 +1,98 @@
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import type { ValuationResult } from '../types';
 
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+const schema = {
+    description: "SPCA Pricing Valuation Result",
+    type: SchemaType.OBJECT,
+    properties: {
+        itemName: { type: SchemaType.STRING },
+        conditionAssumption: { type: SchemaType.STRING },
+        ethicalCheck: {
+            type: SchemaType.OBJECT,
+            properties: {
+                status: { type: SchemaType.STRING, enum: ["Pass", "Fail", "Check Carefully"] },
+                message: { type: SchemaType.STRING }
+            },
+            required: ["status", "message"]
+        },
+        marketStatus: { type: SchemaType.STRING },
+        newRetailPrice: { type: SchemaType.STRING },
+        onlineResaleValue: { type: SchemaType.NUMBER },
+        marketValue: {
+            type: SchemaType.OBJECT,
+            properties: {
+                min: { type: SchemaType.NUMBER },
+                max: { type: SchemaType.NUMBER }
+            },
+            required: ["min", "max"]
+        },
+        demandLevel: { type: SchemaType.STRING, enum: ["High", "Medium", "Low"] },
+        recommendedPrice: { type: SchemaType.NUMBER },
+        confidenceLevel: { type: SchemaType.STRING, enum: ["High", "Medium", "Low"] },
+        flag: { type: SchemaType.STRING },
+        salesTip: { type: SchemaType.STRING }
+    },
+    required: [
+        "itemName", "conditionAssumption", "ethicalCheck", "marketStatus",
+        "newRetailPrice", "onlineResaleValue", "marketValue", "demandLevel",
+        "recommendedPrice", "confidenceLevel", "flag", "salesTip"
+    ]
+};
+
 export class PricingAssistantService {
-    /**
-     * Mock analysis of an image.
-     * In a real app, this would send the image to an LLM (Gemini) with the system prompt provided.
-     */
-    static async analyzeItem(_image: File): Promise<ValuationResult> {
-        console.log("Analyzing item from image:", _image.name);
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 3000));
+    static async analyzeItem(image: File): Promise<ValuationResult> {
+        console.log("Analyzing item with Gemini AI...");
 
-        // We'll return a random mock scenario to demonstrate the logic
-        const scenarios: ValuationResult[] = [
-            {
-                itemName: "Kathmandu Epiq Men's Down Jacket",
-                conditionAssumption: "Good used condition, slight fading on cuffs, all zippers functional",
-                ethicalCheck: {
-                    status: 'Pass',
-                    message: 'No restricted materials detected.'
-                },
-                marketStatus: "Quality Brand - High local demand",
-                newRetailPrice: "$349.98 NZD",
-                onlineResaleValue: 180,
-                marketValue: {
-                    min: 120,
-                    max: 180
-                },
-                demandLevel: 'High',
-                recommendedPrice: 65.00, // ~36% of online resale
-                confidenceLevel: 'High',
-                flag: 'No issues detected',
-                salesTip: "Put on the 'Boutique' rack - this is a high-demand seasonal item."
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
             },
-            {
-                itemName: "Vintage style 3/4 Coat",
-                conditionAssumption: "Excellent vintage condition, but fur trim detected",
-                ethicalCheck: {
-                    status: 'Fail',
-                    message: '⚠️ WARNING: LOOKS LIKE REAL RABBIT FUR. Please check roots for skin vs mesh. If real, do not sell.'
-                },
-                marketStatus: "Niche Vintage / Potential restricted material",
-                newRetailPrice: "Unknown (Vintage)",
-                onlineResaleValue: 60,
-                marketValue: {
-                    min: 0,
-                    max: 60
-                },
-                demandLevel: 'Low',
-                recommendedPrice: 0.00, // Restricted item
-                confidenceLevel: 'Medium',
-                flag: 'Ethical Check Failed',
-                salesTip: "Recycle/Discard if real fur. If faux fur, price at $15.00."
-            },
-            {
-                itemName: "Anko Ceramic Vase (White)",
-                conditionAssumption: "Brand new condition",
-                ethicalCheck: {
-                    status: 'Pass',
-                    message: 'Safe to sell - synthetic ceramic.'
-                },
-                marketStatus: "Common Kmart item",
-                newRetailPrice: "$12.00 NZD",
-                onlineResaleValue: 5,
-                marketValue: {
-                    min: 2,
-                    max: 5
-                },
-                demandLevel: 'Medium',
-                recommendedPrice: 4.00,
-                confidenceLevel: 'High',
-                flag: 'No issues detected',
-                salesTip: "Put in the homewares section. Standard budget item."
-            }
-        ];
+            systemInstruction: `You are the SPCA Op Shop Pricing Assistant. Your goal is to turn donated goods into funds for animals in need.
+            
+            Follow these steps for every image:
+            1. Ethical Check: Flag Real Fur, Ivory, or Tortoiseshell (Policy Restricted). If Faux Fur, state "Looks like Faux Fur - Safe to sell".
+            2. Identify: Brand, Model, Era. Search NZ markets (Trade Me, FB Marketplace NZ, Farmers, Kmart, Warehouse).
+            3. Budget Check: If Anko, Warehouse, or Shein, value low ($2-$5).
+            4. Quality Check: If high-value brand (Country Road, Kathmandu, Royal Doulton), find 2nd-hand price.
+            5. Logic: Recommended Price should be 30-40% of online resale price for quick 7-day turnover.
+            6. High Value: If online resale is > $50, flag as "High-value" and tip to move to Manager for Trade Me listing.
+            
+            Return ONLY a valid JSON object matching the provided schema.`
+        });
 
-        // Return a random one for demo purposes
-        return scenarios[Math.floor(Math.random() * scenarios.length)];
+        // Convert file to GenerativePart
+        const imagePart = await this.fileToGenerativePart(image);
+
+        const result = await model.generateContent([
+            "Analyze this donated item for SPCA NZ pricing.",
+            imagePart
+        ]);
+
+        const response = result.response;
+        const text = response.text();
+        return JSON.parse(text) as ValuationResult;
+    }
+
+    private static async fileToGenerativePart(file: File): Promise<{ inlineData: { data: string, mimeType: string } }> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Data = (reader.result as string).split(',')[1];
+                resolve({
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: file.type
+                    }
+                });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     }
 
     static formatPrice(price: number): string {
@@ -85,4 +102,5 @@ export class PricingAssistantService {
         }).format(price);
     }
 }
+
 
