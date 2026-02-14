@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import type { Schema } from "@google/generative-ai";
 import type { ValuationResult } from '../types';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-const schema = {
+const schema: Schema = {
     description: "SPCA Pricing Valuation Result",
     type: SchemaType.OBJECT,
     properties: {
@@ -13,7 +14,7 @@ const schema = {
         ethicalCheck: {
             type: SchemaType.OBJECT,
             properties: {
-                status: { type: SchemaType.STRING, enum: ["Pass", "Fail", "Check Carefully"] },
+                status: { type: SchemaType.STRING, enum: ["Pass", "Fail", "Check Carefully"], format: "enum" },
                 message: { type: SchemaType.STRING }
             },
             required: ["status", "message"]
@@ -29,9 +30,9 @@ const schema = {
             },
             required: ["min", "max"]
         },
-        demandLevel: { type: SchemaType.STRING, enum: ["High", "Medium", "Low"] },
+        demandLevel: { type: SchemaType.STRING, enum: ["High", "Medium", "Low"], format: "enum" },
         recommendedPrice: { type: SchemaType.NUMBER },
-        confidenceLevel: { type: SchemaType.STRING, enum: ["High", "Medium", "Low"] },
+        confidenceLevel: { type: SchemaType.STRING, enum: ["High", "Medium", "Low"], format: "enum" },
         flag: { type: SchemaType.STRING },
         salesTip: { type: SchemaType.STRING }
     },
