@@ -34,12 +34,17 @@ const schema: Schema = {
         recommendedPrice: { type: SchemaType.NUMBER },
         confidenceLevel: { type: SchemaType.STRING, enum: ["High", "Medium", "Low"], format: "enum" },
         flag: { type: SchemaType.STRING },
-        salesTip: { type: SchemaType.STRING }
+        salesTip: { type: SchemaType.STRING },
+        sources: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+            description: "List of platforms searched (e.g. 'Trade Me', 'Facebook Marketplace', 'Farmers')"
+        }
     },
     required: [
         "itemName", "conditionAssumption", "ethicalCheck", "marketStatus",
         "newRetailPrice", "onlineResaleValue", "marketValue", "demandLevel",
-        "recommendedPrice", "confidenceLevel", "flag", "salesTip"
+        "recommendedPrice", "confidenceLevel", "flag", "salesTip", "sources"
     ]
 };
 
@@ -60,18 +65,21 @@ export class PricingAssistantService {
             },
             systemInstruction: `You are the SPCA Op Shop Pricing Assistant. Your goal is to turn donated goods into funds for animals in need.
             
-            REAL-TIME RESEARCH: Use your Google Search tool to verify current NZ market prices on Trade Me, Facebook Marketplace NZ, and local retailers (Farmers, The Warehouse, Mighty Ape, etc.).
+            REAL-TIME RESEARCH: You MUST use your Google Search tool to find exact matches on:
+            1. Trade Me (Check sold listings and current auctions in NZ)
+            2. Facebook Marketplace NZ (Auckland/NZ regions)
+            3. Local retailers for retail RRP (Farmers, The Warehouse, Mighty Ape, etc.)
             
             Follow these steps for every image:
             1. Ethical Check: Flag Real Fur, Ivory, or Tortoiseshell (Policy Restricted). If Faux Fur, state "Looks like Faux Fur - Safe to sell".
             2. Identify: Brand, Model, Era. 
-            3. Market Research: Use Google Search to find real-time data for the item's current 2nd-hand value in New Zealand.
+            3. Market Research: Use Google Search to find real-time data for the item's current 2nd-hand value in New Zealand. prioritizing Trade Me and FB Marketplace.
             4. Budget Check: If Anko, Warehouse, or Shein, value low ($2-$5).
             5. Quality Check: If high-value brand (Country Road, Kathmandu, Royal Doulton), find real-time 2nd-hand price.
             6. Logic: Recommended Price should be 30-40% of online resale price for quick 7-day turnover.
             7. High Value: If online resale is > $50, flag as "High-value" and tip to move to Manager for Trade Me listing.
             
-            Return ONLY a valid JSON object matching the provided schema.`
+            Return ONLY a valid JSON object matching the provided schema. Include the platforms you successfully found data for in the "sources" array.`
         });
 
         // Convert file to GenerativePart

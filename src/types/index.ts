@@ -28,6 +28,7 @@ export interface ValuationResult {
     confidenceLevel: ConfidenceLevel;
     flag: FlagType;
     salesTip: string;
+    sources: string[];
 }
 
 export interface ResearchStatus {

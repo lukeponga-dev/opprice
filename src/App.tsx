@@ -117,8 +117,8 @@ function App() {
 
     const steps: ResearchStatus[] = [
       { step: 'analyzing', message: 'Analyzing item brand and model...' },
-      { step: 'searching', message: 'Scanning Trade Me for sold listings...' },
-      { step: 'searching', message: 'Benchmarking retail prices...' },
+      { step: 'searching', message: 'Scanning Trade Me & FB Marketplace...' },
+      { step: 'searching', message: 'Benchmarking NZ retail prices...' },
       { step: 'assessing', message: 'Calculating local demand indices...' },
       { step: 'finalizing', message: 'Generating optimal pricing strategy...' }
     ];
@@ -446,6 +446,27 @@ function App() {
                 </div>
                 <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', margin: 0 }}>"{result.conditionAssumption}"</p>
               </div>
+
+              {result.sources && result.sources.length > 0 && (
+                <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Research Scope:</span>
+                    {result.sources.map((src) => (
+                      <span key={src} style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        background: 'rgba(255,255,255,0.04)',
+                        padding: '0.3rem 0.6rem',
+                        borderRadius: '20px',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: 'var(--text-primary)'
+                      }}>
+                        {src}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <motion.div
