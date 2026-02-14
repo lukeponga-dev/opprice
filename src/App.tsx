@@ -167,29 +167,45 @@ function App() {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '1rem' }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}
         >
-          <div style={{
-            background: 'rgba(16, 185, 129, 0.1)',
-            padding: '10px',
-            borderRadius: '12px',
-            border: '1px solid rgba(16, 185, 129, 0.2)'
-          }}>
-            <PawPrint className="text-primary" size={24} style={{ color: 'var(--accent-primary)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.1)',
+              padding: '10px',
+              borderRadius: '12px',
+              border: '1px solid rgba(16, 185, 129, 0.2)'
+            }}>
+              <PawPrint className="text-primary" size={24} style={{ color: 'var(--accent-primary)' }} />
+            </div>
+            <span style={{
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: 'var(--accent-primary)'
+            }}>SPCA NZ Official</span>
           </div>
-          <span style={{
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: 'var(--accent-primary)'
-          }}>SPCA NZ Official</span>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'rgba(14, 165, 233, 0.08)',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '20px',
+            border: '1px solid rgba(14, 165, 233, 0.12)'
+          }}>
+            <div className="pulse" style={{ width: '6px', height: '6px', background: 'var(--accent-secondary)', borderRadius: '50%' }} />
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--accent-secondary)', textTransform: 'uppercase' }}>GenAI Research Active</span>
+          </div>
         </motion.div>
 
         <motion.h1
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
+          style={{ marginBottom: '0.5rem' }}
         >
           Price Scan
         </motion.h1>

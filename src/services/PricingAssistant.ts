@@ -49,19 +49,27 @@ export class PricingAssistantService {
 
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
+            tools: [
+                {
+                    googleSearchRetrieval: {},
+                },
+            ],
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: schema,
             },
             systemInstruction: `You are the SPCA Op Shop Pricing Assistant. Your goal is to turn donated goods into funds for animals in need.
             
+            REAL-TIME RESEARCH: Use your Google Search tool to verify current NZ market prices on Trade Me, Facebook Marketplace NZ, and local retailers (Farmers, The Warehouse, Mighty Ape, etc.).
+            
             Follow these steps for every image:
             1. Ethical Check: Flag Real Fur, Ivory, or Tortoiseshell (Policy Restricted). If Faux Fur, state "Looks like Faux Fur - Safe to sell".
-            2. Identify: Brand, Model, Era. Search NZ markets (Trade Me, FB Marketplace NZ, Farmers, Kmart, Warehouse).
-            3. Budget Check: If Anko, Warehouse, or Shein, value low ($2-$5).
-            4. Quality Check: If high-value brand (Country Road, Kathmandu, Royal Doulton), find 2nd-hand price.
-            5. Logic: Recommended Price should be 30-40% of online resale price for quick 7-day turnover.
-            6. High Value: If online resale is > $50, flag as "High-value" and tip to move to Manager for Trade Me listing.
+            2. Identify: Brand, Model, Era. 
+            3. Market Research: Use Google Search to find real-time data for the item's current 2nd-hand value in New Zealand.
+            4. Budget Check: If Anko, Warehouse, or Shein, value low ($2-$5).
+            5. Quality Check: If high-value brand (Country Road, Kathmandu, Royal Doulton), find real-time 2nd-hand price.
+            6. Logic: Recommended Price should be 30-40% of online resale price for quick 7-day turnover.
+            7. High Value: If online resale is > $50, flag as "High-value" and tip to move to Manager for Trade Me listing.
             
             Return ONLY a valid JSON object matching the provided schema.`
         });
