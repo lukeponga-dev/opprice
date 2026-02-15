@@ -29,6 +29,7 @@ export interface ValuationResult {
     flag: FlagType;
     salesTip: string;
     sources: string[];
+    timestamp?: string;
 }
 
 export interface ResearchStatus {

@@ -14,7 +14,10 @@ import {
   Camera,
   X,
   RefreshCw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  History,
+  Download,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -26,8 +29,25 @@ function App() {
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<ResearchStatus>({ step: 'idle', message: '' });
   const [result, setResult] = useState<ValuationResult | null>(null);
+  const [history, setHistory] = useState<ValuationResult[]>(() => {
+    const saved = localStorage.getItem('valuationHistory');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to load history:", e);
+      }
+    }
+    return [];
+  });
   const [showScanner, setShowScanner] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('valuationHistory', JSON.stringify(history));
+  }, [history]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -130,7 +150,9 @@ function App() {
 
     try {
       const data = await PricingAssistantService.analyzeItem(file);
-      setResult(data);
+      const resultWithTimestamp = { ...data, timestamp: new Date().toISOString() };
+      setResult(resultWithTimestamp);
+      setHistory(prev => [resultWithTimestamp, ...prev].slice(0, 50)); // Keep last 50
       setStatus({ step: 'idle', message: '' });
 
       if (data.ethicalCheck.status === 'Pass') {
@@ -153,6 +175,24 @@ function App() {
       case 'Fail': return 'var(--error)';
       case 'Check Carefully': return 'var(--warning)';
       default: return 'var(--text-muted)';
+    }
+  };
+
+  const exportResults = () => {
+    if (history.length === 0) return;
+    const dataStr = JSON.stringify(history, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const exportFileDefaultName = `spca-scans-${new Date().toISOString().split('T')[0]}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const clearHistory = () => {
+    if (confirm("Are you sure you want to clear all scan history?")) {
+      setHistory([]);
     }
   };
 
@@ -217,6 +257,29 @@ function App() {
         >
           Valuing donations to protect animals
         </motion.p>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '-1rem' }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowHistory(!showHistory)}
+            className="button-secondary"
+            style={{ padding: '0.5rem 1rem', borderRadius: '12px', fontSize: '0.8rem' }}
+          >
+            <History size={16} /> {showHistory ? 'Hide History' : 'View History'}
+          </motion.button>
+          {history.length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={exportResults}
+              className="button-secondary"
+              style={{ padding: '0.5rem 1rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid var(--accent-secondary)' }}
+            >
+              <Download size={16} /> Output Scans
+            </motion.button>
+          )}
+        </div>
       </header>
 
       <AnimatePresence mode="wait">
@@ -411,6 +474,24 @@ function App() {
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'Outfit' }}>Valuation Report</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>NZ MARKET ANALYSIS • READY</p>
               </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    const dataStr = JSON.stringify(result, null, 2);
+                    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                    const linkElement = document.createElement('a');
+                    linkElement.setAttribute('href', dataUri);
+                    linkElement.setAttribute('download', `valuation-${result.itemName.replace(/\s+/g, '-').toLowerCase()}.json`);
+                    linkElement.click();
+                  }}
+                  title="Download individual report"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', color: 'var(--text-primary)', padding: '0.6rem', borderRadius: '12px', cursor: 'pointer' }}
+                >
+                  <Download size={18} />
+                </motion.button>
+              </div>
             </div>
 
             <div className="result-grid">
@@ -529,6 +610,48 @@ function App() {
               Scan New Donation
               <ChevronRight size={20} />
             </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showHistory && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            style={{ overflow: 'hidden', borderTop: '1px solid var(--card-border)', marginTop: '2rem', paddingTop: '2rem' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontFamily: 'Outfit' }}>Scan History</h3>
+              {history.length > 0 && (
+                <button
+                  onClick={clearHistory}
+                  style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  <Trash2 size={14} /> Clear All
+                </button>
+              )}
+            </div>
+
+            {history.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No previous scans found.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {history.map((item, idx) => (
+                  <div key={idx} className="condition-box" style={{ margin: 0, padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 700, fontSize: '1rem' }}>{item.itemName}</span>
+                      <span style={{ color: 'var(--accent-primary)', fontWeight: 800 }}>{PricingAssistantService.formatPrice(item.recommendedPrice)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <span>Condition: {item.conditionAssumption}</span>
+                      <span>{item.timestamp ? new Date(item.timestamp).toLocaleDateString() : ''}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
